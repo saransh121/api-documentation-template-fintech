@@ -1,32 +1,50 @@
-<!-- Example values use Northwind Pay, a fictional company. -->
 # Errors
 
-## Error object
+Two jobs for this page. Tell people what broke. Tell them whether to try again.
+
+## The error object
+
 ```json
-{{ "error": { "code": "...", "message": "...", "param": "...", "request_id": "..." } }}
+{
+  "error": {
+    "code": "{{stable_machine_code}}",
+    "message": "{{human text, may change}}",
+    "param": "{{field that caused it, if any}}",
+    "request_id": "{{req_...}}"
+  }
+}
 ```
-> *Guidance:* Tell readers which fields are stable (safe to code against) and which are human text that may change.
+
+> *Guidance:* Which fields can people code against? Usually `code`. Which are just words for humans and might change next month? Usually `message`. Say so, or someone will `if (message == ...)` their way into an outage.
 
 ## Codes
+
 | HTTP | `code` | What happened | Retry? |
 |---|---|---|---|
-| {{400}} | {{...}} | {{...}} | {{no, fix the request}} |
+| {{4xx}} | `{{code}}` | {{plain words}} | {{never / same key / after a wait}} |
 
-> *Guidance:* The Retry? column is the point of this page. For each code, say: never retry / retry with the same idempotency key / retry after a wait.
+That last column. Don't skip it. Three possible answers, pick one per row: never, retry with the same idempotency key, or wait then retry.
 
 ## Retrying safely
-{{Backoff advice, max attempts, and the rule that retries must reuse the same idempotency key.}}
+
+Backoff: how long, how many tries? And the rule people forget: a retry reuses the *same* idempotency key. New key = new charge.
 
 ## Getting help
-{{What to send support. Usually the request_id.}}
+
+What should they paste into a support ticket? Normally just the `request_id`. Tell them where to find it.
 
 ---
+
 ### Northwind Pay example (fictional)
-| HTTP | `code` | What happened | Retry? |
-|---|---|---|---|
-| 400 | `amount_invalid` | Zero, negative, or not in minor units | No, fix it |
-| 401 | `key_invalid` | Missing, revoked, or test key on live | No |
-| 402 | `card_declined` | Issuing bank said no | Not with that card |
-| 409 | `idempotency_conflict` | Same key, different body | No, new key |
-| 429 | `rate_limited` | Too many requests | Yes, after `Retry-After` |
-| 503 | `server_error` | Our side | Yes, same idempotency key |
+
+```text
+HTTP  code                  what happened                         retry?
+400   amount_invalid        zero, negative, or not in minor units no, fix it
+401   key_invalid           missing, revoked, or test key on live no
+402   card_declined         issuing bank said no                  not with that card
+409   idempotency_conflict  same key, different body              no, new key
+429   rate_limited          too many requests                     yes, after Retry-After
+503   server_error          our side                              yes, same idempotency key
+```
+
+Northwind Pay is made up. So are its error codes.
